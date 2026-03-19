@@ -99,7 +99,9 @@ function connectWs(){
     .then(r => r.json())
     .then(data => {
       if(!data.url) return;
-      ws = new WebSocket(data.url);
+      var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      var wsFullUrl = proto + '//' + window.location.host + '/' + data.url;
+      ws = new WebSocket(wsFullUrl);
       ws.onopen = () => {
         $('wsDot').classList.add('on');
         $('wsLabel').textContent = 'Connected';
