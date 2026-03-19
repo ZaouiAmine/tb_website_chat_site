@@ -65,7 +65,7 @@ header h2{font-size:1.1rem;font-weight:600}
 <script>
 const API = window.location.origin;
 let username = '';
-let ws = null;
+let pollTimer = null;
 let seen = new Set();
 
 function $(id){ return document.getElementById(id) }
@@ -77,7 +77,7 @@ function join(){
   $('loginScreen').style.display = 'none';
   $('chatScreen').style.display = 'flex';
   loadHistory();
-  connectWs();
+  startPolling();
 }
 
 $('usernameInput').addEventListener('keydown', function(e){ if(e.key==='Enter') join() });
@@ -89,40 +89,17 @@ function loadHistory(){
     .then(data => {
       if(data.messages && data.messages.length > 0){
         data.messages.forEach(m => addMessage(m, false));
+        $('messages').scrollTop = $('messages').scrollHeight;
       }
     })
     .catch(()=>{});
 }
 
-function connectWs(){
-  fetch(API + '/api/ws')
-    .then(r => r.json())
-    .then(data => {
-      if(!data.url) return;
-      var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      var wsFullUrl = proto + '//' + window.location.host + '/' + data.url;
-      ws = new WebSocket(wsFullUrl);
-      ws.onopen = () => {
-        $('wsDot').classList.add('on');
-        $('wsLabel').textContent = 'Connected';
-      };
-      ws.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(evt.data);
-          addMessage(msg, true);
-        } catch(e){}
-      };
-      ws.onclose = () => {
-        $('wsDot').classList.remove('on');
-        $('wsLabel').textContent = 'Disconnected';
-        setTimeout(connectWs, 3000);
-      };
-      ws.onerror = () => { ws.close() };
-    })
-    .catch(() => {
-      $('wsLabel').textContent = 'WS unavailable';
-      setInterval(pollNew, 5000);
-    });
+function startPolling(){
+  $('wsDot').classList.add('on');
+  $('wsLabel').textContent = 'Live';
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(pollNew, 2000);
 }
 
 function pollNew(){
